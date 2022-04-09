@@ -1,0 +1,42 @@
+from scapy.all import *
+from scapy.layers.inet import IP, TCP
+import pip
+import sys
+import os
+
+# exercise 6 - indentification of syn-flood attackers
+# author: Avia Avikasis
+
+MAX_ORDER = 6
+
+
+def main():
+    """
+    The function will go over a sniffing file, and you will find IP addresses
+     of attackers using the syn flood method.
+    """
+    p_cap_file = rdpcap("C:/Networks/work/SynFloodSample.pcap")
+
+    dict_of_senders = {}
+    for pkt in p_cap_file:
+        if pkt[IP].src not in dict_of_senders:
+            dict_of_senders.update({pkt[IP].src: 0})
+
+    for pkt in p_cap_file:
+        if pkt[TCP].flags == 'S':
+            dict_of_senders[pkt[IP].src] += 1
+        elif pkt[TCP].flags == 'A':
+            dict_of_senders[pkt[IP].src] -= 1
+
+    attackers = open('c:/Networks/work/attackers.txt','w')
+
+    for i in dict_of_senders:
+        if dict_of_senders[i] > MAX_ORDER:
+            attackers.write(i+"\n")
+
+    return
+
+
+main()
+
+
