@@ -1,0 +1,63 @@
+# author : Avia Avikasis
+
+# This class represents the client, which sends a sequence of requests
+# to the server and receives responses from it
+
+import socket
+IP = '127.0.0.1'
+PORT = 8820
+FIELD_OF_LEN = 2
+MAX_LEN_MESSAGE = 99
+
+
+def check_cmd(data):
+    """Check if the command is defined in the protocol"""
+    if (data == 'TIME' or data == 'NAME' or data == 'RAND' or data == 'EXIT') and len(data) <= 99:
+        return True
+    else:
+        return False
+
+
+def create_msg(message):
+    """Create a valid protocol message, with length field"""
+    length = str(len(message))
+    zfill_length = length.zfill(FIELD_OF_LEN)
+    message1 = zfill_length + message
+    return message1
+
+
+def get_msg(my_socket):
+    """Extracts a message from the protocol, checks its correctness,
+     and if it is correct, transfers the content to the main program"""
+    first = my_socket.recv(FIELD_OF_LEN).decode()
+    length = int(first)
+    if length > MAX_LEN_MESSAGE:
+        my_socket.close()
+        return 'Exceptional message length'
+
+    data = my_socket.recv(length).decode()
+    return data
+
+
+def main():
+    # contact
+    my_socket = socket.socket()
+    my_socket.connect((IP, PORT))
+    message = ''
+
+    # A loop that will run and ask the user to enter their requests,
+    # until the user types the word 'EXIT'
+    while message != 'EXIT':
+        message = input('What action do you want to request from the server?')
+        if check_cmd(message):
+            message1 = create_msg(message)
+            my_socket.send(message1.encode())
+            data = get_msg(my_socket)
+            print("The server sent " + data)
+        else:
+            print('Incorrect input, please rewrite')
+
+    my_socket.close()
+
+
+main()
