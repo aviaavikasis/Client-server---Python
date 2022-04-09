@@ -1,0 +1,86 @@
+# author : Avia Avikasis
+
+# This class represents the server, which listens at the same port
+# address of the client, accepts the client requests, and responds to them
+
+import socket
+import datetime
+import random
+
+IP = '0.0.0.0'
+PORT = 8820
+NAME_OF_SERVER = 'server1'
+FIELD_OF_LEN = 2
+MAX_LEN_MESSAGE = 99
+MIN_LEN_MESSAGE = 4
+MIN = 1
+MAX = 10
+
+
+def get_msg(client_socket):
+    """ Extract message from protocol, without the length field"""
+    try:
+        first = client_socket.recv(FIELD_OF_LEN).decode()
+    except:
+        client_socket.send('The message contains less than two characters'.encode())
+        client_socket.close()
+        return
+    try:
+        length = int(first)
+    except:
+        client_socket.send('message without length field'.encode())
+        client_socket.close()
+        return
+    if length > MAX_LEN_MESSAGE or length < MIN_LEN_MESSAGE:
+        client_socket.send('Exceptional message length'.encode())
+        client_socket.close()
+        return
+
+    data = client_socket.recv(length).decode()
+    return data
+
+
+def create_server_rsp(data):
+    """Based on the command, create a proper response"""
+    if data == 'TIME':
+        reply = str(datetime.datetime.now())
+
+    elif data == 'NAME':
+        reply = NAME_OF_SERVER
+
+    elif data == 'RAND':
+        reply = str(random.randint(MIN, MAX))
+
+    elif data == 'EXIT':
+        reply = 'close'
+
+    else:
+        reply = 'the message is incorrect'
+    if len(reply) > 99:
+        reply = 'The requested response exceeds the possible size'
+    return str(len(reply)).zfill(FIELD_OF_LEN) + reply
+
+
+def main():
+    # contact
+    server_socket = socket.socket()
+    server_socket.bind((IP, PORT))
+    server_socket.listen()
+    print("Server is up and running")
+    (client_socket, client_address) = server_socket.accept()
+    print("Client connected")
+
+    data = ''
+
+    # The loop will run endlessly, until the word EXIT arrives
+    while data != 'EXIT':
+
+        data = get_msg(client_socket)
+        reply = create_server_rsp(data)
+        if reply == 'close':
+            client_socket.close()
+            server_socket.close()
+        client_socket.send(reply.encode())
+
+
+main()
