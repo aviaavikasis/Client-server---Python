@@ -1,0 +1,58 @@
+# solution of exercise 5: ns-lookup
+# author: Avia Avikasis
+import sys
+from scapy.all import *
+from scapy.layers.dns import DNS, DNSQR, DNSRR
+from scapy.layers.inet import IP
+from scapy.layers.inet import UDP
+
+DST_ADDRESS = '8.8.8.8'
+SRC_PORT = 24603
+DST_PORT = 53
+TYPE_A = 1
+TYPE_PTR = 12
+
+
+def reverse_ip(ip):
+    ip = ip.split('.')
+    ip.reverse()
+    ip = '.'.join(ip)
+    return ip
+
+
+def ns_lookup():
+    """'
+    The script will perform an ns-lookup operation, which
+    returns the IP address of a site by its name, or the name of the site by its IP address
+    ''"""
+    _type = sys.argv[1]
+    if _type == 'A':
+        p = sys.argv[2]
+    elif _type == 'PTR':
+        p = sys.argv[2]
+        p = reverse_ip(p)
+        p += '.in-addr.arpa'
+    dns_packet = IP(dst=DST_ADDRESS) / UDP(sport=SRC_PORT, dport=DST_PORT) / DNS(qdcount=1) / DNSQR(qtype=_type,
+                                                                                                    qname=p)
+    response_packet = sr1(dns_packet)
+    an_count = response_packet[DNS].ancount
+    if an_count > 0:
+        if _type == 'A':
+            print('Non-authoritative answer:\r\nName: ' + response_packet[DNSRR][0].rrname.decode() + '\r\n' + 'Addresses:\r\n')
+            for i in range(an_count):
+                if response_packet[DNSRR][i].type == TYPE_A:
+                    print(response_packet[DNSRR][i].rdata)
+
+        elif _type == 'PTR':
+            for i in range(an_count):
+                if response_packet[DNSRR][i].type == TYPE_PTR:
+                    print('Non-authoritative answer:\r\n' + p + '    name =' + response_packet[DNSRR][i].rdata.decode() + '\r\n')
+                    break
+    else:
+        if type == 'A':
+            print('ip address not found')
+        else:
+            print('the name not found')
+
+
+ns_lookup()
